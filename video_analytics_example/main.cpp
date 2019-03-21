@@ -406,7 +406,7 @@ void *DecodeThreadFunc(void *arg)
     int nIndexVPP_Out = 0;
     bool bNeedMore    = false;
 
-    unsigned char *temp_img_buffer = (unsigned char *)malloc(gNet_input_width*gNet_input_height*4);
+    unsigned char *temp_img_buffer = (unsigned char *)malloc(MSDK_ALIGN32(gNet_input_width)*MSDK_ALIGN32(gNet_input_height)*4);
     pDecConfig= (DecThreadConfig *) arg;
     if( NULL == pDecConfig)
     {
@@ -621,22 +621,22 @@ recheck2:
 
                     for (i = 0; i < w; i++)
                     {
-                       memcpy(pTemp + i*w, ptr + i*pData->Pitch, w);
+                       memcpy(pTemp + i*pData->Pitch, ptr + i*pData->Pitch, w);
                     }
 
 
                     ptr	= pData->G + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-                    pTemp = srcframe->imgbuf + w*h;
+                    pTemp = srcframe->imgbuf + pData->Pitch*h;
                     for(i = 0; i < h; i++)
                     {
-                       memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
+                       memcpy(pTemp  + i*pData->Pitch, ptr + i*pData->Pitch, w);
                     }
 
                     ptr	= pData->R + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-                    pTemp = srcframe->imgbuf + 2*w*h;
+                    pTemp = srcframe->imgbuf + 2*pData->Pitch*h;
                     for(i = 0; i < h; i++)
                     {
-                        memcpy(pTemp  + i*w, ptr + i*pData->Pitch, w);
+                        memcpy(pTemp  + i*pData->Pitch, ptr + i*pData->Pitch, w);
                     }
 
                   #else
@@ -669,7 +669,6 @@ recheck2:
                     }
                  #endif
                     // basic info
-                    srcframe->imgpts     = srcframe->imgpts;
                     srcframe->timestamp   = pipeStartTs;
                     //srcframe->pixelformat = MFX_FOURCC_RGBP; //yuv420p;
                     srcframe->realwidth   = w;
@@ -1509,10 +1508,10 @@ vsource_frame_init(int channel, vsource_frame_t *frame) {
     bzero(frame, sizeof(vsource_frame_t));
     //
   
-    frame->linesize[i] = gNet_input_width;
+    frame->linesize[i] = MSDK_ALIGN32(gNet_input_width);
     
     frame->maxstride =0;
-    frame->imgbufsize = gNet_input_width * gNet_input_height *3;
+    frame->imgbufsize = MSDK_ALIGN32(gNet_input_width) * MSDK_ALIGN32(gNet_input_height) *3;
     frame->imgbuf = ((unsigned char *) frame) + sizeof(vsource_frame_t);
     frame->imgbuf += alignment(frame->imgbuf, VSOURCE_ALIGNMENT);
   
@@ -1684,7 +1683,8 @@ int main(int argc, char *argv[])
         char szBuffer[256]={0};
         sprintf(szBuffer, "SharedInferBuf%d", nLoop);
         dpipe[nLoop] = dpipe_create(0, szBuffer, 100,
-                                    sizeof(vsource_frame_t) + gNet_input_width*gNet_input_height*4);
+                                    sizeof(vsource_frame_t) + MSDK_ALIGN32(gNet_input_width)*
+                                                              MSDK_ALIGN32(gNet_input_height)*4);
         if( dpipe[nLoop] == NULL ) {
             std::cout<<"create dst-pipeline failed .\n"<<std::endl;
             return 1;
@@ -2449,9 +2449,9 @@ cv::Mat createMat(unsigned char *rawData, unsigned int dimX, unsigned int dimY)
     cv::Mat outputMat;
 
     // Build headers on your raw data
-    cv::Mat channelR(dimY, dimX, CV_8UC1, rawData);
-    cv::Mat channelG(dimY, dimX, CV_8UC1, rawData + dimX * dimY);
-    cv::Mat channelB(dimY, dimX, CV_8UC1, rawData + 2 * dimX * dimY);
+    cv::Mat channelR(dimY, dimX, CV_8UC1, rawData, MSDK_ALIGN32(dimX));
+    cv::Mat channelG(dimY, dimX, CV_8UC1, rawData + MSDK_ALIGN32(dimX) * dimY, MSDK_ALIGN32(dimX));
+    cv::Mat channelB(dimY, dimX, CV_8UC1, rawData + 2 * MSDK_ALIGN32(dimX) * dimY, MSDK_ALIGN32(dimX));
 
     // Invert channels, 
     // don't copy data, just the matrix headers
