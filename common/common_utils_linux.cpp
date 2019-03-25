@@ -22,8 +22,17 @@ mfxStatus Initialize(mfxIMPL impl, mfxVersion ver, MFXVideoSession* pSession, mf
 {
     mfxStatus sts = MFX_ERR_NONE;
 
+    mfxInitParam initPar;
+    // we set version to 1.0 and later we will query actual version of the library which will got leaded
+    memset(&initPar,0,sizeof(initPar));
+    initPar.Version.Major = 1;
+    initPar.Version.Minor = 28;
+    initPar.GPUCopy = MFX_GPUCOPY_ON;
+    initPar.Implementation = MFX_IMPL_HARDWARE_ANY;
+
     // Initialize Intel Media SDK Session
-    sts = pSession->Init(impl, &ver);
+    //sts = pSession->Init(impl, &ver);
+    sts = pSession->InitEx(initPar);
     MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
 
