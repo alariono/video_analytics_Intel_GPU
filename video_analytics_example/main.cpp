@@ -540,6 +540,49 @@ recheck2:
                               
                for (;;)
                {
+                   dpipe_buffer_t  *srcdata  = NULL;
+                   vsource_frame_t *srcframe = NULL;
+                   mfxU32 i, j, h, w;
+
+                   /* need to update output surface in case of system memory used*/
+                   {
+                       srcdata = dpipe_get(pDecConfig->dpipe);
+                       if(srcdata == NULL)
+                          break;
+                       srcframe = (vsource_frame_t*) srcdata->pointer;
+                       srcframe->channel  = pDecConfig->nChannel;
+                       srcframe->frameno  = pDecConfig->nFrameProcessed;
+
+                       mfxFrameSurface1* pSurface = pDecConfig->pmfxVPP_Out_Surfaces[nIndexVPP_Out];
+                       mfxFrameInfo* pInfo = &pSurface->Info;
+                       mfxFrameData* pVppOutData = &pSurface->Data;
+
+                       if (pInfo->CropH > 0 && pInfo->CropW > 0)
+                       {
+                           w = pInfo->CropW;
+                           h = pInfo->CropH;
+                       }
+                       else
+                       {
+                           w = pInfo->Width;
+                           h = pInfo->Height;
+                       }
+                       pVppOutData->Pitch = MSDK_ALIGN32(pInfo->Width);
+                       pVppOutData->B = srcframe->imgbuf;
+                       pVppOutData->G = srcframe->imgbuf + pVppOutData->Pitch*h;
+                       pVppOutData->R = srcframe->imgbuf + pVppOutData->Pitch* 2*h;
+
+                       /**/
+                       // basic info
+                       srcframe->timestamp   = pipeStartTs;
+                       //srcframe->pixelformat = MFX_FOURCC_RGBP; //yuv420p;
+                       srcframe->realwidth   = w;
+                       srcframe->realheight  = h;
+                       srcframe->realstride  = w;
+                       srcframe->realsize = w * h * 3;
+
+                       dpipe_store(pDecConfig->dpipe, srcdata);
+                   }
                    // Process a frame asychronously (returns immediately) 
                    sts = pDecConfig->pmfxVPP->RunFrameVPPAsync(pDecConfig->pmfxVPP_In_Surfaces[nIndexVPP_In], pDecConfig->pmfxVPP_Out_Surfaces[nIndexVPP_Out], NULL, &syncpVPP);
 
@@ -583,61 +626,61 @@ recheck2:
                     if(FLAGS_infer == 0){
                         continue;
                     }
-                    dpipe_buffer_t  *srcdata  = NULL;
-                    vsource_frame_t *srcframe = NULL;
-      
-                    srcdata = dpipe_get(pDecConfig->dpipe);
-                    if(srcdata == NULL)
-                       break;
-                    srcframe = (vsource_frame_t*) srcdata->pointer;
-                    srcframe->channel  = pDecConfig->nChannel;
-                    srcframe->frameno  = pDecConfig->nFrameProcessed;
-                    mfxU32 i, j, h, w;
-
-                    mfxFrameSurface1* pSurface = pDecConfig->pmfxVPP_Out_Surfaces[nIndexVPP_Out];
-
-                    pDecConfig->pmfxAllocator->Lock(pDecConfig->pmfxAllocator->pthis, 
-                                                      pSurface->Data.MemId, 
-                                                      &(pSurface->Data));
-                    mfxFrameInfo* pInfo = &pSurface->Info;
-                    mfxFrameData* pData = &pSurface->Data;
+//                    dpipe_buffer_t  *srcdata  = NULL;
+//                    vsource_frame_t *srcframe = NULL;
+//
+//                    srcdata = dpipe_get(pDecConfig->dpipe);
+//                    if(srcdata == NULL)
+//                       break;
+//                    srcframe = (vsource_frame_t*) srcdata->pointer;
+//                    srcframe->channel  = pDecConfig->nChannel;
+//                    srcframe->frameno  = pDecConfig->nFrameProcessed;
+//                    mfxU32 i, j, h, w;
+//
+//                    mfxFrameSurface1* pSurface = pDecConfig->pmfxVPP_Out_Surfaces[nIndexVPP_Out];
+//
+//                    pDecConfig->pmfxAllocator->Lock(pDecConfig->pmfxAllocator->pthis,
+//                                                      pSurface->Data.MemId,
+//                                                      &(pSurface->Data));
+//                    mfxFrameInfo* pInfo = &pSurface->Info;
+//                    mfxFrameData* pData = &pSurface->Data;
                            
                   #ifndef TEST_KCF_TRACK_WITH_GPU	
 
-                    mfxU8* ptr;
-                    if (pInfo->CropH > 0 && pInfo->CropW > 0)
-                    {
-                        w = pInfo->CropW;
-                        h = pInfo->CropH;
-                    }
-                    else
-                    {
-                        w = pInfo->Width;
-                        h = pInfo->Height;
-                    }
-
-                    mfxU8 *pTemp = srcframe->imgbuf;
-                    ptr   = pData->B + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-
-                    for (i = 0; i < w; i++)
-                    {
-                       memcpy(pTemp + i*pData->Pitch, ptr + i*pData->Pitch, w);
-                    }
-
-
-                    ptr	= pData->G + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-                    pTemp = srcframe->imgbuf + pData->Pitch*h;
-                    for(i = 0; i < h; i++)
-                    {
-                       memcpy(pTemp  + i*pData->Pitch, ptr + i*pData->Pitch, w);
-                    }
-
-                    ptr	= pData->R + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
-                    pTemp = srcframe->imgbuf + 2*pData->Pitch*h;
-                    for(i = 0; i < h; i++)
-                    {
-                        memcpy(pTemp  + i*pData->Pitch, ptr + i*pData->Pitch, w);
-                    }
+//                    mfxU8* ptr;
+//                    if (pInfo->CropH > 0 && pInfo->CropW > 0)
+//                    {
+//                        w = pInfo->CropW;
+//                        h = pInfo->CropH;
+//                    }
+//                    else
+//                    {
+//                        w = pInfo->Width;
+//                        h = pInfo->Height;
+//                    }
+//
+//                    mfxU8 *pTemp = srcframe->imgbuf;
+//                    ptr   = pData->B + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+//
+//                    for (i = 0; i < w; i++)
+//                    {
+//                       memcpy(pTemp + i*pData->Pitch, ptr + i*pData->Pitch, w);
+//                    }
+//
+//
+//                    ptr	= pData->G + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+//                    pTemp = srcframe->imgbuf + pData->Pitch*h;
+//                    for(i = 0; i < h; i++)
+//                    {
+//                       memcpy(pTemp  + i*pData->Pitch, ptr + i*pData->Pitch, w);
+//                    }
+//
+//                    ptr	= pData->R + (pInfo->CropX ) + (pInfo->CropY ) * pData->Pitch;
+//                    pTemp = srcframe->imgbuf + 2*pData->Pitch*h;
+//                    for(i = 0; i < h; i++)
+//                    {
+//                        memcpy(pTemp  + i*pData->Pitch, ptr + i*pData->Pitch, w);
+//                    }
 
                   #else
 
@@ -668,17 +711,17 @@ recheck2:
                         ptrR[i*w + j] =  ptr[i*pData->Pitch + j*4 +2];
                     }
                  #endif
-                    // basic info
-                    srcframe->timestamp   = pipeStartTs;
-                    //srcframe->pixelformat = MFX_FOURCC_RGBP; //yuv420p;
-                    srcframe->realwidth   = w;
-                    srcframe->realheight  = h;
-                    srcframe->realstride  = w;
-                    srcframe->realsize = w * h * 3;
+//                    // basic info
+//                    srcframe->timestamp   = pipeStartTs;
+//                    //srcframe->pixelformat = MFX_FOURCC_RGBP; //yuv420p;
+//                    srcframe->realwidth   = w;
+//                    srcframe->realheight  = h;
+//                    srcframe->realstride  = w;
+//                    srcframe->realsize = w * h * 3;
 
-                    pDecConfig->pmfxAllocator->Unlock(pDecConfig->pmfxAllocator->pthis, 
-                                                          pSurface->Data.MemId, 
-                                                          &(pSurface->Data));
+//                    pDecConfig->pmfxAllocator->Unlock(pDecConfig->pmfxAllocator->pthis,
+//                                                          pSurface->Data.MemId,
+//                                                          &(pSurface->Data));
 
 				
                     // cv::Mat frame(h, w, CV_8UC4);  
@@ -687,7 +730,7 @@ recheck2:
                     // cv::cvtColor(frame, srcframe->cvImg, CV_BGRA2BGR);
                     //frame.copyTo(srcframe->cvImg);
 
-                    dpipe_store(pDecConfig->dpipe, srcdata);
+//                    dpipe_store(pDecConfig->dpipe, srcdata);
                     sem_post(&gNewtaskAvaiable);
 
                 }//if(sts==)
@@ -1920,7 +1963,7 @@ int main(int argc, char *argv[])
         VPPParams.vpp.Out.Height = (MFX_PICSTRUCT_PROGRESSIVE == VPPParams.vpp.Out.PicStruct)?
                                    MSDK_ALIGN16(VPPParams.vpp.Out.CropH) : MSDK_ALIGN32(VPPParams.vpp.Out.CropH);
 
-        VPPParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+        VPPParams.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
 
         std::cout << "\t. VPP ( " << VPPParams.vpp.In.CropW << " x " << VPPParams.vpp.In.CropH << " )"
                   << " -> ( " << VPPParams.vpp.Out.CropW << " x " << VPPParams.vpp.Out.CropH << " )" << ", ( " << VPPParams.vpp.Out.Width << " x " << VPPParams.vpp.Out.Height << " )" << std::endl;
@@ -2062,13 +2105,16 @@ int main(int argc, char *argv[])
 
         sts = mfxAllocator[nLoop].Alloc(mfxAllocator[nLoop].pthis, &(VPPRequest[1]), &VPP_Out_Response);
 
-        if(MFX_ERR_NONE > sts)
-        {
-            MSDK_PRINT_RET_MSG(sts);
-            return 1;
-        }
+//        if(MFX_ERR_NONE > sts)
+//        {
+//            MSDK_PRINT_RET_MSG(sts);
+//            return 1;
+//        }
 
         mfxU16 nVPP_Out_SurfNum = VPP_Out_Response.NumFrameActual;
+
+        if (VPPRequest[1].Type & (MFX_MEMTYPE_SYSTEM_MEMORY))
+            nVPP_Out_SurfNum = nVPP_In_SurfNum;
 
         std::cout << "\t\t. VPP Out Surface Actual Number: " << nVPP_Out_SurfNum << std::endl;
 
@@ -2088,7 +2134,8 @@ int main(int argc, char *argv[])
             memcpy(&(pmfxVPP_Out_Surfaces[nLoop][i]->Info), &(VPPParams.vpp.Out), sizeof(mfxFrameInfo));
 
             // external allocator used - provide just MemIds
-            pmfxVPP_Out_Surfaces[nLoop][i]->Data.MemId = VPP_Out_Response.mids[i];
+            if (!(VPPRequest[1].Type & (MFX_MEMTYPE_SYSTEM_MEMORY)))
+                pmfxVPP_Out_Surfaces[nLoop][i]->Data.MemId = VPP_Out_Response.mids[i];
         }
 
         // Initialize the Media SDK decoder
