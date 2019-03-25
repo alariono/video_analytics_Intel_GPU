@@ -6,7 +6,7 @@ set(OPENCV_LIB $ENV{INTEL_CVSDK_DIR}/opencv/lib)
 set(IE_PLUGIN_INCLUDE ${CMAKE_SOURCE_DIR}/ie_plugin/ie_plugin)
 set(MFX_INCLUDE $ENV{MFX_HOME}/include/mfx)
 set(MFX_LIB_OPENSOURCE $ENV{MFX_HOME}/lib)
-set(MFX_LIB $ENV{MFX_HOME}/lib/lin_x64)
+set(MFX_LIB $ENV{MFX_HOME}/lib64)
 set(CPU_EXENTION_INCLUDE $ENV{INTEL_CVSDK_DIR}/deployment_tools/extension_generator/templates)
 set(CPU_EXENTION_LIB ${CMAKE_SOURCE_DIR}/lib)
 
@@ -25,6 +25,6 @@ ${CPU_EXENTION_LIB} ${CMAKE_SOURCE_DIR}/runtime/lib/x64)
 add_executable(video_analytics_example  main.cpp dpipe.cpp XCBShow.cpp 
 detector.cpp  SetupSurface.cpp fhog.cpp kcftracker.cpp intelscalar.cpp)
 target_link_libraries(video_analytics_example X11 VAITutils gflags_static 
-igfxcmrt64 mfx va va-drm pthread rt dl opencv_core opencv_video opencv_videoio opencv_imgproc opencv_photo opencv_highgui opencv_imgcodecs inference_engine cpu_extension  ${LIBYUV_LIBRARY} ${FFMPEG_LIBRARIES} jpeg ${SDL_LIBRARY} ${XCB_LIBRARIES})
+mfx va va-drm pthread rt dl opencv_core opencv_video opencv_videoio opencv_imgproc opencv_photo opencv_highgui opencv_imgcodecs inference_engine cpu_extension  ${LIBYUV_LIBRARY} ${FFMPEG_LIBRARIES} jpeg ${SDL_LIBRARY} ${XCB_LIBRARIES})
 
 

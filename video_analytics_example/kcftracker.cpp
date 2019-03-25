@@ -495,7 +495,7 @@ int KCFTracker::initMDF()
 
     if (KCFTracker::pCmDev == NULL)
     {
-        result = ::CreateCmDevice(KCFTracker::pCmDev, version, m_va_dpy);
+        //result = ::CreateCmDevice(KCFTracker::pCmDev, version, m_va_dpy);
         if (result != CM_SUCCESS ) {
             std::cout<<"CmDevice creation error"<<std::endl;
             return -1;
