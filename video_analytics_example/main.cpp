@@ -626,13 +626,16 @@ recheck2:
                         }
                     }
 
-                    if(FLAGS_infer == 0){
-                        continue;
-                    }
                     dpipe_buffer_t  *srcdata  = NULL;
                     vsource_frame_t *srcframe = NULL;
-      
-                    srcdata = dpipe_get(pDecConfig->dpipe);
+
+                    if(FLAGS_infer == 0){
+                        srcdata = dpipe_get(pDecConfig->dpipe);
+                        dpipe_store(pDecConfig->dpipe, srcdata);
+                        sem_post(&gNewtaskAvaiable);
+                        continue;
+                    }
+
                     if(srcdata == NULL)
                        break;
                     srcframe = (vsource_frame_t*) srcdata->pointer;
