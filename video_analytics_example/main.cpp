@@ -147,6 +147,7 @@ public:
     mfxFrameSurface1** pmfxVPP_In_Surfaces;
     mfxFrameSurface1** pmfxVPP_Out_Surfaces;
     MFXVideoSession *  pmfxSession;
+    MFXVideoSession *  pmfxSession_Dec_SW;
     mfxFrameAllocator *pmfxAllocator;
     MFXVideoVPP       *pmfxVPP;
 
@@ -492,6 +493,12 @@ recheck:
         if (MFX_ERR_NONE == sts )
         {
             pDecConfig->nFrameProcessed ++;
+
+            if (FLAGS_dec_sw == "on")
+            {
+                sts = pDecConfig->pmfxSession_Dec_SW->SyncOperation(syncpDec, 60000);
+                MSDK_BREAK_ON_ERROR(sts);
+            }
 
           
 #ifdef TEST_KCF_TRACK_WITH_GPU		
@@ -1814,6 +1821,7 @@ int main(int argc, char *argv[])
 
     // mfxSession and Allocator can be shared globally.
     MFXVideoSession   mfxSession[NUM_OF_CHANNELS];
+    MFXVideoSession   mfxSession_decSw;
     mfxFrameAllocator mfxAllocator[NUM_OF_CHANNELS];	 
 
     FILE *f_i[NUM_OF_CHANNELS];
@@ -1857,7 +1865,22 @@ int main(int argc, char *argv[])
             goto exit_here;
         }
 
-        MFXVideoDECODE *pmfxDEC = new MFXVideoDECODE(mfxSession[nLoop]);
+        if (FLAGS_dec_sw == "on")
+        {
+            impl = MFX_IMPL_SOFTWARE;
+            ver = { {0, 1} };
+            sts = Initialize(impl, ver, &mfxSession_decSw, &mfxAllocator[nLoop]);
+            if( sts != MFX_ERR_NONE){
+                std::cout << "\t. Failed to initialize SW decode session" << std::endl;
+                goto exit_here;
+            }
+        }
+
+        MFXVideoDECODE *pmfxDEC = NULL;
+        if (FLAGS_dec_sw == "on")
+            pmfxDEC = new MFXVideoDECODE(mfxSession_decSw);
+        else
+            pmfxDEC = new MFXVideoDECODE(mfxSession[nLoop]);
         vpMFXDec.push_back(pmfxDEC);
         MFXVideoVPP    *pmfxVPP = new MFXVideoVPP(mfxSession[nLoop]);
         vpMFXVpp.push_back(pmfxVPP);
@@ -2256,6 +2279,10 @@ int main(int argc, char *argv[])
         pDecThreadConfig->pmfxVPP_Out_Surfaces   = pmfxVPP_Out_Surfaces[nLoop];
         pDecThreadConfig->pmfxBS                 = &mfxBS[nLoop];
         pDecThreadConfig->pmfxSession            = &mfxSession[nLoop];
+        if (FLAGS_dec_sw == "on")
+            pDecThreadConfig->pmfxSession_Dec_SW     = &mfxSession_decSw;
+        else
+            pDecThreadConfig->pmfxSession_Dec_SW = NULL;
         pDecThreadConfig->pmfxAllocator          = &mfxAllocator[nLoop];
         pDecThreadConfig->nChannel               = nLoop;
         pDecThreadConfig->nFPS                   = 1;//30/pDecThreadConfig->nFPS;
